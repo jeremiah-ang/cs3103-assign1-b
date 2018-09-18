@@ -83,9 +83,14 @@ string extractResponseCode(char http_response[]) {
 }
 
 // extract new location
-// TODO: Update implementation
-string extractNewLocation(char http_response[]) {
-	return "varlabs.comp.nus.edu.sg";
+void extractNewLocation(char http_response[], string &server_addr, string &request_file) {
+	string rcv_string = string(http_response);
+	regex rgx("Location: http:\\/\\/([\\w+\\.?]+)([\\/\\w\\.]+)");
+	smatch match;
+	if(regex_search(rcv_string, match, rgx)) {
+		server_addr = match[1];
+		request_file = match[2];
+	}
 }
 
 // Error handling
@@ -97,8 +102,10 @@ void handleError(char rcv_data[]) {
 
 // Handle redirection
 void handle302(char rcv_data[]) {
-	string new_location = extractNewLocation(rcv_data);
-	sendHttpGetRequest(new_location, REQUEST_FILE);
+
+	string new_location, request_file;
+	extractNewLocation(rcv_data, new_location, request_file);
+	sendHttpGetRequest(new_location, request_file);
 }
 
 // Handle Ok!
@@ -108,6 +115,9 @@ void handle200(char rcv_data[]) {
 	smatch match;
 	if(regex_search(rcv_string, match, rgx)) {
 		cout << "My public IP address is " << match[0] << endl;
+	} else {
+		cout << "NOT A 'YOUR IP' WEBPAGE" << endl << "SHOWING HTTP RESPONSE" << endl << endl;
+		cout << rcv_data << endl;
 	}
 	exit(0);
 }
@@ -115,7 +125,7 @@ void handle200(char rcv_data[]) {
 // Entry point to different response handler
 void handleHttpResponse(char rcv_data[]) {
 	string response_code = extractResponseCode(rcv_data);
-	if (response_code == "302") {
+	if (response_code == "302" || response_code == "301") {
 		handle302(rcv_data);
 	} else if (response_code == "200") {
 		handle200(rcv_data);
@@ -140,7 +150,26 @@ void sendHttpGetRequest(string server_url, string request_file) {
 	handleHttpResponse(rcv_data);
 }
 
+void getServerAddrAndRequestFileFromUrl(string url, string &server_addr, string &request_file) {
+	string delimiter = "/";
+	int pos;
+	if ((pos = url.find(delimiter)) > -1) {
+		server_addr = url.substr(0, pos);
+		request_file = url.substr(pos, url.length());
+	} else {
+		server_addr = url;
+		request_file = delimiter;
+	}
+}
+
 int main(int argc, char const *argv[]) {	
-	sendHttpGetRequest(SERVER_ADDR, REQUEST_FILE);
+	string server_addr, request_file;
+	if (argc != 2) {
+		server_addr = SERVER_ADDR;
+		request_file = REQUEST_FILE;
+	} else {
+		getServerAddrAndRequestFileFromUrl(string(argv[1]), server_addr, request_file);
+	}
+	sendHttpGetRequest(server_addr, request_file);
 	return 0;
 }
