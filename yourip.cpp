@@ -47,10 +47,12 @@ int createMySocket() {
 }
 
 // Set parameters of server port
-void setupServerSocket(sockaddr_in *server_addr, int server_port, string server_ip) {
-	server_addr->sin_family = AF_INET;
-	server_addr->sin_port = htons(server_port);
-	inet_pton(AF_INET, server_ip.c_str(), &(server_addr->sin_addr));
+sockaddr_in setupServerSocket(int server_port, string server_ip) {
+	sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(server_port);
+	inet_pton(AF_INET, server_ip.c_str(), &(server_addr.sin_addr));
+	return server_addr;
 }
 
 // Connect to server's socket
@@ -137,11 +139,10 @@ void handleHttpResponse(char rcv_data[]) {
 // Send GET request
 void sendHttpGetRequest(string server_url, string request_file) {
 	int my_socket = createMySocket();
-	struct sockaddr_in server_addr;
 	string server_ip;
 	char rcv_data[1024];
 	server_ip = getServerIp(server_url);
-	setupServerSocket(&server_addr, 80, server_ip);
+	sockaddr_in server_addr = setupServerSocket(80, server_ip);
 	connectToServerSocket(my_socket, server_addr);
 	string snd_data = createHttpGetRequest(server_url, request_file);
 	send(my_socket, snd_data.c_str(), snd_data.length(), 0);
