@@ -61,6 +61,7 @@ void connectToServerSocket(int my_socket, sockaddr_in server_addr) {
 	if (connection < 0) {
 		perror("Connect");
 		exit(1);
+		
 	}
 }
 
